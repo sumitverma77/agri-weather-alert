@@ -1,41 +1,20 @@
 package com.security.agriweatheralertsystem.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+@Data
+@AllArgsConstructor
 public class WeatherDTO {
-
-    private String cityName;
-    private String conditionText;
-    private double temperatureC;
-
-    public WeatherDTO() {
-    }
-
-    public WeatherDTO(String cityName, String conditionText, double temperatureC) {
-        this.cityName = cityName;
-        this.conditionText = conditionText;
-        this.temperatureC = temperatureC;
-    }
-
-    public String getCityName() {
-        return cityName;
-    }
-
-    public void setCityName(String cityName) {
-        this.cityName = cityName;
-    }
-
-    public String getConditionText() {
-        return conditionText;
-    }
-
-    public void setConditionText(String conditionText) {
-        this.conditionText = conditionText;
-    }
-
-    public double getTemperatureC() {
-        return temperatureC;
-    }
-
-    public void setTemperatureC(double temperatureC) {
-        this.temperatureC = temperatureC;
-    }
+    private String locationName;
+    private String todayDate;
+    private String todayCondition;
+    private double todayAvgTemp;
+    private double todayChanceOfRain;
+    private double todayTotalPrecip;
+    private String tomorrowDate;
+    private String tomorrowCondition;
+    private double tomorrowAvgTemp;
+    private double tomorrowChanceOfRain;
+    private double tomorrowTotalPrecip;
 }
+

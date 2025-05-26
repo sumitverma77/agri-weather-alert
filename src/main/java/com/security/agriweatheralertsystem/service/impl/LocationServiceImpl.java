@@ -9,6 +9,7 @@ public class LocationServiceImpl implements LocationService {
 
     @Override
     public String parseLocation(String messageBody) {
+
         return LocationParser.parseLocation(messageBody);
     }
 }
