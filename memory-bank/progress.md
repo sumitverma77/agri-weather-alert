@@ -1,25 +1,26 @@
-# Progress
+## Project Status
 
-**What Works:**
+The project is currently in progress. The location parser has been updated to call Gemini and ask for the nearest available identified location from the user input in a single word without explanation. This single word will then be used in the weather API to get the response. The user also wants to see the location that is being used to get the weather response.
 
-*   The project plan has been created and refined based on user feedback.
-*   The memory bank files have been created and populated with project details.
+## What Works
 
-**What's Left to Build:**
+*   The `LocationParser.java` file has been modified to call the Gemini API.
+*   The `LocationServiceImpl.java` file has been modified to call the `parseLocation` method on an instance of the `LocationParser` class.
+*   The `GEMINI_API_KEY` is being injected into the `LocationParser` class using the `@Value` annotation.
+*   The HTTP client is being created as a single instance and reused for all calls to the Gemini API.
+*   The error handling in the `callGeminiApi` method is more robust than the original error handling.
+*   The `LocationService.java` file has been modified to change the return type of the `parseLocation` method to `Map<String, String>`.
+*   The `WeatherServiceImpl.java` file has been modified to handle the `Map<String, String>` return type from the `locationService.parseLocation(messageBody)` method.
+    *   The original location and the parsed location are being printed to the terminal.
 
-*   Set up the Spring Boot project with the necessary dependencies.
-*   Implement the Webhook endpoint.
-*   Implement Input Validation and Location Extraction.
-*   Implement Weather API Integration.
-*   Implement LLM Integration.
-*   Implement SMS/WhatsApp Sending.
-*   Implement Logging and Monitoring.
-*   Implement Error Handling.
+## What's Left to Build
 
-**Current Status:**
+*   Test the changes to ensure that the location parser is working as expected and that the location is being printed to the terminal.
 
-*   The project is in the initial setup phase.
+## Current Status
 
-**Known Issues:**
+The current status is that the code changes are complete, but the changes have not yet been tested.
 
-*   None.
+## Known Issues
+
+*   There are no known issues at this time.

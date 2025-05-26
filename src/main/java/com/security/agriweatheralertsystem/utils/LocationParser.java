@@ -1,22 +1,39 @@
 package com.security.agriweatheralertsystem.utils;
 
-import java.util.Arrays;
-import java.util.List;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.security.agriweatheralertsystem.service.AIService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
+import java.net.http.HttpClient;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component
 public class LocationParser {
 
-    public static String parseLocation(String messageBody) {
-        String[] parts = messageBody.split("[,]");
-        List<String> locations = Arrays.stream(parts)
-                .map(String::trim)
-                .toList();
+    @Autowired
+    private AIService geminiService;
 
-        if (locations.size() == 1) {
-            return locations.get(0);
-        } else if (locations.size() == 2) {
-            return locations.get(0); // Return the first location
-        } else {
+
+    private final HttpClient client = HttpClient.newHttpClient();
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    public Map<String, String> parseLocation(String messageBody) {
+        try {
+            String prompt = """
+Find the most suitable single-word location from these options for weather forecasting: %s. Return only the single word location without any explanation.
+I'm using weatherAPI so return that location from that which is available in weatherAPI.
+""".formatted(messageBody);
+            String nearestLocation =  geminiService.getGeminiResponse(prompt);
+            Map<String, String> locationMap = new HashMap<>();
+            locationMap.put("originalLocation", messageBody);
+            locationMap.put("parsedLocation", nearestLocation);
+            return locationMap;
+        } catch (Exception e) {
+            System.err.println("Error calling Gemini API: " + e.getMessage());
             return null;
         }
     }
+
 }

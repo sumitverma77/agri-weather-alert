@@ -1,20 +1,31 @@
-# Active Context
+## Current Work Focus
 
-**Current Work Focus:** Setting up the Spring Boot project and integrating with Twilio, Gemini, and a weather API.
+The current work focus is to update the location parser to call Gemini and ask for the nearest available identified location from the user input in a single word without explanation. This single word will then be used in the weather API to get the response. The user also wants to see the location that is being used to get the weather response.
 
-**Recent Changes:**
+## Recent Changes
 
-*   Updated the plan to remove the database dependency for PIN code validation.
-*   Confirmed the SMS/WhatsApp provider (Twilio), LLM API (Gemini), and the weather API requirement (provides details according to the PIN code).
+*   Modified `LocationParser.java` to call the Gemini API to get the nearest available identified location.
+    *   Added necessary imports for making HTTP requests and parsing JSON responses.
+    *   Created a method `callGeminiApi` to call the Gemini API with the user's message body as input.
+    *   Modified the `parseLocation` method to use the `callGeminiApi` method.
+    *   Injected the `GEMINI_API_KEY` using `@Value("${gemini.api.key}")`.
+    *   Created a single HTTP client instance and reused it for all calls to the Gemini API.
+    *   Added more robust error handling to catch potential exceptions and provide informative error messages.
+*   Modified `LocationServiceImpl.java` to call the `parseLocation` method on an instance of the `LocationParser` class.
+    *   Added the `@Autowired` annotation to inject an instance of the `LocationParser` class.
+    *   Added the import statement for the `@Autowired` annotation.
+    *   Updated the `parseLocation` method to return a `Map<String, String>` containing the original location and the parsed location.
+*   Modified `LocationService.java` to change the return type of the `parseLocation` method to `Map<String, String>`.
+*   Modified `WeatherServiceImpl.java` to handle the `Map<String, String>` return type from the `locationService.parseLocation(messageBody)` method.
+    *   Added code to print the original location and the parsed location to the terminal.
 
-**Next Steps:**
+## Next Steps
 
-*   Explore the existing project structure.
-*   Add the necessary dependencies to the `pom.xml` file.
-*   Implement the Webhook endpoint.
+*   Test the changes to ensure that the location parser is working as expected and that the location is being printed to the terminal.
+*   Update the `progress.md` file to reflect the current status of the task.
 
-**Active Decisions and Considerations:**
+## Active Decisions and Considerations
 
-*   Choosing the right weather API that provides detailed information based on the PIN code.
-*   Handling potential API rate limits for both the weather API and the LLM API.
-*   Ensuring the security of API keys and credentials.
+*   The `GEMINI_API_KEY` is being injected into the `LocationParser` class using the `@Value` annotation. This is a good way to manage the API key, but it is important to ensure that the API key is properly secured.
+*   The HTTP client is being created as a single instance and reused for all calls to the Gemini API. This is more efficient than creating a new HTTP client for each call.
+*   The error handling in the `callGeminiApi` method is more robust than the original error handling. This will help to prevent unexpected errors and provide more informative error messages.

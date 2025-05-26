@@ -1,6 +1,6 @@
 package com.security.agriweatheralertsystem.service;
 
-public interface TwilioService {
+public interface MessagingService {
 
     void sendMessage(String phoneNumber, String message);
 }
