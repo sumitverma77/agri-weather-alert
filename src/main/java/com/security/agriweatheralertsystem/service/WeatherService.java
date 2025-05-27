@@ -2,9 +2,11 @@ package com.security.agriweatheralertsystem.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.security.agriweatheralertsystem.dto.WeatherDTO;
+import com.security.agriweatheralertsystem.converter.Converter;
+import com.security.agriweatheralertsystem.dto.WeatherDto;
 import com.security.agriweatheralertsystem.enums.FallbackMessage;
 import com.security.agriweatheralertsystem.enums.Language;
+import com.security.agriweatheralertsystem.repository.UserRepo;
 import com.security.agriweatheralertsystem.utils.LocationParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +30,8 @@ public class WeatherService {
     private LocationParser locationParser;
     @Autowired
     MessagingService messagingService;
+    @Autowired
+    UserRepo userRepo;
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -35,8 +39,10 @@ public class WeatherService {
         System.out.println("Received message from: " + phoneNumber);
         System.out.println("Message body: " + messageBody);
 
-        WeatherDTO weatherData = getWeatherData(messageBody);
-        if (weatherData != null) {
+        WeatherDto weatherData = getWeatherData(messageBody);
+
+        userRepo.save(Converter.toUserEntity(phoneNumber.replace("whatsapp:" , ""), weatherData.getLocationName()));
+
             String hindiSummary = summarize(weatherData, messageBody, Language.HINDI);
             String englishSummary = summarize(weatherData, messageBody, Language.ENGLISH);
 
@@ -47,11 +53,9 @@ public class WeatherService {
             } else {
                 messagingService.sendMessage(phoneNumber, FallbackMessage.getMessage(Language.ENGLISH));
             }
-        } else {
-            messagingService.sendMessage(phoneNumber, FallbackMessage.getMessage(Language.ENGLISH));
-        }
+
     }
-    public WeatherDTO getWeatherData(String messageBody) {
+    public WeatherDto getWeatherData(String messageBody) {
         Map<String, String> locationMap = locationParser.parseLocation(messageBody);
         String city = locationMap != null ? locationMap.get("parsedLocation") : null;
         String originalLocation = locationMap != null ? locationMap.get("originalLocation") : null;
@@ -87,7 +91,7 @@ public class WeatherService {
 
             String locationName = root.path("location").path("name").asText();
 
-            return new WeatherDTO(locationName, todayDate, todayCondition, todayAvgTemp, todayChanceOfRain, todayTotalPrecip,
+            return new WeatherDto(locationName, todayDate, todayCondition, todayAvgTemp, todayChanceOfRain, todayTotalPrecip,
                     tomorrowDate, tomorrowCondition, tomorrowAvgTemp, tomorrowChanceOfRain, tomorrowTotalPrecip);
 
         } catch (Exception e) {
@@ -97,12 +101,12 @@ public class WeatherService {
     }
 
 
-    public String summarize(WeatherDTO weatherData, String location, Language language) {
+    public String summarize(WeatherDto weatherData, String location, Language language) {
         String prompt = buildGeminiPrompt(weatherData, location , language);
         return geminiService.getGeminiResponse(prompt);
     }
 
-    private String buildGeminiPrompt(WeatherDTO data, String location , Language language) {
+    private String buildGeminiPrompt(WeatherDto data, String location , Language language) {
         return """
 Generate a concise, farmer-friendly weather summary (3-4 lines) for %s.
 Include:

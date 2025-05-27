@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 @Data
 @AllArgsConstructor
-public class WeatherDTO {
+public class WeatherDto {
     private String locationName;
     private String todayDate;
     private String todayCondition;
