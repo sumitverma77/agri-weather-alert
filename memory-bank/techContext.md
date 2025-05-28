@@ -5,9 +5,10 @@
 *   **Spring Boot:** Java-based framework for building the application.
 *   **Twilio:** For sending and receiving SMS/WhatsApp messages.
 *   **Google Cloud AI Gemini:** For summarizing weather data in Hindi and English.
-*   **Weather API:** For fetching weather data based on the PIN code.
+*   **Weather API:** For fetching weather data based on the location.
 *   **Maven:** For dependency management.
 *   **SLF4J:** For logging.
+*   **Spring Scheduler:** For scheduling weather alerts.
 
 **Development Setup:**
 
