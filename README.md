@@ -1,66 +1,158 @@
-# AgriWeather Alert System
+# AgriWeather Alert System 🌾☁️
 
-## Project Description
+## 📌 Project Description
 
-The AgriWeather Alert System provides farmers with timely and accurate weather information in Hindi and English via SMS/WhatsApp to help them make informed decisions about their crops. The system automatically sends weather alerts to farmers on a scheduled basis.
+### 🎯 Problem Statement
 
-## Setup Instructions
+Many farmers, especially in rural areas, are not comfortable using smartphones or typing queries online. However, they can read messages. They often rely on rumors or second-hand weather advice, which sometimes leads to uninformed crop decisions.
 
-1.  Install Java Development Kit (JDK) 17 or higher.
-2.  Install Maven 3.6 or higher.
-3.  Create a Twilio account.
-4.  Create a Google Cloud AI Gemini account.
-5.  Create an account with a weather API provider.
-6.  Configure the application properties in `src/main/resources/application.properties` with your Twilio, Gemini, and weather API credentials.
-7.  Build the application using Maven: `mvn clean install`
-8.  Run the application: `mvn spring-boot:run`
+### ✅ Solution Overview
 
-## Usage Instructions
+AgriWeather Alert System automates the delivery of weather updates via SMS and WhatsApp in Hindi and English, requiring no technical skills or interactions from the farmers. It runs scheduled weather checks twice a day and sends easy-to-understand messages.
 
-The system automatically sends weather alerts to farmers on a scheduled basis. To receive weather alerts, farmers need to register with the system and provide their location.
+### 🌟 Key Benefits
 
-## Update Location 
-![Output.png](screenshots/update-location.png)
+1. No need to search or browse online
 
-### Scheduled Alerts Everyday at 5:00 AM
+2. Supports non-tech-savvy farmers
 
-![Output.png](screenshots/scheduled-alerts.png)
+3. Bilingual support (Hindi & English)
+
+4. Zero interaction required — just read the message
+
+Reduces dependency on unreliable information sources
+---
+
+## 🛠️ Setup Instructions
+
+1. Install **Java JDK 17** or higher.
+2. Install **Maven 3.6** or higher.
+3. Create accounts for the following services:
+    - [Twilio](https://www.twilio.com/)
+    - [Google Cloud AI Gemini](https://aistudio.google.com/)
+    - Weather API provider (e.g., OpenWeatherMap)
+4. Configure credentials in `src/main/resources/application.properties`:
+   ```properties
+   twilio.account.sid=...
+   twilio.auth.token=...
+   twilio.whatsapp.number=...
+   gemini.api.key=...
+   weather.api.key=...
+   spring.datasource.url=...
+   spring.datasource.username=...
+   spring.datasource.password=...
+   ```
+5. Build the application:
+   ```bash
+   mvn clean install
+   ```
+6. Run the application:
+   ```bash
+   mvn spring-boot:run
+   ```
+
+> By default, the application runs on **http://localhost:8080**
+
+---
+
+## ▶️ Run the Project Locally
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/your-username/agriweather-alert.git
+cd agriweather-alert
+```
+
+### 2. Start the Application
+
+```bash
+mvn spring-boot:run
+```
+
+---
+
+## 🌐 Expose Localhost using Ngrok
+
+### 1. Install [Ngrok](https://ngrok.com/download)
+
+### 2. Start a tunnel:
+
+```bash
+ngrok http 8080
+```
+
+Copy the HTTPS URL from the terminal output (e.g., `https://abcd1234.ngrok.io`).
+
+---
+
+## 💬 Configure Twilio Sandbox
+
+1. Log in to the [Twilio Console](https://www.twilio.com/console).
+2. Go to **Messaging > Try it Out > WhatsApp Sandbox**.
+3. Set the **Webhook URL** to:
+
+```
+https://your-ngrok-url.ngrok.io/api/webhook
+```
+
+4. Join the sandbox by sending the join code (e.g., `join brave-owl`) to the provided WhatsApp number.
+
+![Twilio Sandbox Config](screenshots/sandbox-config.png)
+
+---
+
+## 🕒 Scheduling (Optional)
+
+To automatically send alerts twice a day, configure a cron job or use Spring’s `@Scheduled` annotation in your service class.
+
+Example:
+
+```java
+@Scheduled(cron = "0 0 5,17 * * *") // 5:00 AM and 5:00 PM daily
+public void sendWeatherAlerts() {
+    // alert logic here
+}
+```
+
+---
+
+## 📱 User View
+
+### 1. Update Location (via WhatsApp)
+
+![Update Location](screenshots/update-location.png)
+
+### 2. Automatically Scheduled Alerts
+
+Alerts sent at **5:00 AM** daily.
+
+![Scheduled Alert](screenshots/scheduled-alerts.png)
+
+---
+
+## 📚 Memory Bank
+
+The `memory-bank/` folder contains key documentation files:
+
+- `projectbrief.md` – Summary of the project purpose
+- `productContext.md` – Context of use
+- `systemPatterns.md` – Architecture patterns
+- `techContext.md` – Technical stack overview
+- `activeContext.md` – Current working modules
+- `progress.md` – Development progress and milestones
+
+---
+
+## 📩 Contact
+
+For contributions, issues, or questions, feel free to open an issue or contact the maintainer.
+
+---
 
 
+## 📝 License 
 
-## Memory Bank
+This project is licensed under the [MIT License](LICENSE).
 
-The memory bank contains the following files:
-
-*   `projectbrief.md`
-*   `productContext.md`
-*   `systemPatterns.md`
-*   `techContext.md`
-*   `activeContext.md`
-*   `progress.md`
-
-These files contain information about the project, including the project goals, the problem it solves, the system architecture, the technologies used, the current work focus, and the project status.
-
-## License
-
-MIT License
-
-Copyright (c) 2025 Sumit Verma
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+---
