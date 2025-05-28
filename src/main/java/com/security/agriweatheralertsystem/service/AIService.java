@@ -1,5 +1,7 @@
 package com.security.agriweatheralertsystem.service;
 
+import java.util.Optional;
+
 public interface AIService {
-    String getGeminiResponse( String prompt);
+    Optional<String> getGeminiResponse(String prompt);
 }

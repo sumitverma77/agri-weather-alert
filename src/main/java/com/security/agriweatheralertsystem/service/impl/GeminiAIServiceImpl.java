@@ -12,6 +12,8 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Optional;
+
 @Service
 public class GeminiAIServiceImpl implements AIService {
 
@@ -21,7 +23,7 @@ public class GeminiAIServiceImpl implements AIService {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public String getGeminiResponse( String prompt)
+    public Optional<String> getGeminiResponse( String prompt)
     {
         String escapedPrompt = prompt.replace("\"", "\\\"");
 
@@ -47,10 +49,10 @@ public class GeminiAIServiceImpl implements AIService {
             String geminiResponse = restTemplate.postForObject(geminiApiUrl, entity, String.class);
 
             JsonNode root = mapper.readTree(geminiResponse);
-            return  root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
+            return Optional.ofNullable(root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText());
         } catch (Exception e) {
             System.err.println("Error parsing Gemini API response: " + e.getMessage());
-           return null;
+           return Optional.empty();
         }
     }
 }

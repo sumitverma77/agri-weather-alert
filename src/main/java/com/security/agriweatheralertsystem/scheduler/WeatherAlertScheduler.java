@@ -16,8 +16,8 @@ import java.util.List;
         private UserRepo userRepo;
         @Autowired
         private WeatherService weatherService;
-        // Runs every 2 minutes
-        @Scheduled(cron = "0 */2 * * * *")
+        // Run Everyday at 5 AM
+        @Scheduled(cron = "0 0 5 * * ?")
         public void sendWeatherAlerts() {
             List<User> users = userRepo.findAll();
             for (User user : users) {

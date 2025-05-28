@@ -42,26 +42,28 @@ public class WeatherService {
         System.out.println("Message body: " + messageBody);
 
         WeatherDto weatherData = getWeatherData(messageBody);
-        System.out.println("updating"+phoneNumber);
+
       updateLocation(phoneNumber, weatherData.getLocationName());
 
-            String hindiSummary = summarize(weatherData, messageBody, Language.HINDI);
-            String englishSummary = summarize(weatherData, messageBody, Language.ENGLISH);
+        Optional<String> hindiSummaryOpt = summarize(weatherData, messageBody, Language.HINDI);
+        Optional<String> englishSummaryOpt = summarize(weatherData, messageBody, Language.ENGLISH);
 
-            if (hindiSummary != null && englishSummary != null) {
+        if (hindiSummaryOpt.isPresent() && englishSummaryOpt.isPresent()){
+            messagingService.sendMessage(phoneNumber, englishSummaryOpt.get());
+            messagingService.sendMessage(phoneNumber, hindiSummaryOpt.get());
+        } else {
+            messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_EN.getMessage());
+            messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_HI.getMessage());
+        }
 
-                messagingService.sendMessage(phoneNumber, englishSummary);
-                messagingService.sendMessage(phoneNumber, hindiSummary);
-            } else {
-                messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_EN.getMessage());
-                messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_HI.getMessage());
-            }
 
     }
     public WeatherDto getWeatherData(String messageBody) {
-        Map<String, String> locationMap = locationParser.parseLocation(messageBody);
-        String city = locationMap != null ? locationMap.get("parsedLocation") : null;
-        String originalLocation = locationMap != null ? locationMap.get("originalLocation") : null;
+        Optional<Map<String, String>> locationMapOpt = locationParser.parseLocation(messageBody);
+
+        String city = locationMapOpt.map(map -> Optional.ofNullable(map.get("parsedLocation"))).orElse(Optional.empty()).orElse(null);
+        String originalLocation = locationMapOpt.map(map -> Optional.ofNullable(map.get("originalLocation"))).orElse(Optional.empty()).orElse(null);
+
 
         System.out.println("Original Location: " + originalLocation);
         System.out.println("Parsed Location: " + city);
@@ -104,7 +106,7 @@ public class WeatherService {
     }
 
 
-    public String summarize(WeatherDto weatherData, String location, Language language) {
+    public Optional<String> summarize(WeatherDto weatherData, String location, Language language) {
         String prompt = buildGeminiPrompt(weatherData, location , language);
         return geminiService.getGeminiResponse(prompt);
     }
