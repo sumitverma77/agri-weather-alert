@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
+import java.util.Optional;
 
 @Service
 public class WeatherService {
@@ -35,13 +36,14 @@ public class WeatherService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
+
     public void sendWeatherAlert(String phoneNumber, String messageBody) {
         System.out.println("Received message from: " + phoneNumber);
         System.out.println("Message body: " + messageBody);
 
         WeatherDto weatherData = getWeatherData(messageBody);
-
-        userRepo.save(Converter.toUserEntity(phoneNumber.replace("whatsapp:" , ""), weatherData.getLocationName()));
+        System.out.println("updating"+phoneNumber);
+      updateLocation(phoneNumber, weatherData.getLocationName());
 
             String hindiSummary = summarize(weatherData, messageBody, Language.HINDI);
             String englishSummary = summarize(weatherData, messageBody, Language.ENGLISH);
@@ -51,7 +53,8 @@ public class WeatherService {
                 messagingService.sendMessage(phoneNumber, englishSummary);
                 messagingService.sendMessage(phoneNumber, hindiSummary);
             } else {
-                messagingService.sendMessage(phoneNumber, FallbackMessage.getMessage(Language.ENGLISH));
+                messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_EN.getMessage());
+                messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_HI.getMessage());
             }
 
     }
@@ -105,7 +108,22 @@ public class WeatherService {
         String prompt = buildGeminiPrompt(weatherData, location , language);
         return geminiService.getGeminiResponse(prompt);
     }
+    private void updateLocation(String phoneNumber, String location) {
 
+        userRepo.findByPhone(phoneNumber)
+                .ifPresentOrElse(
+                        user -> {
+                            user.setLocation(location);
+                            userRepo.save(user);
+                        },
+                        () -> {
+                            Converter.toUserEntity(phoneNumber, location)
+                                    .ifPresent(userRepo::save);
+                            messagingService.sendMessage(phoneNumber, FallbackMessage.LOCATION_UPDATE_SUCCESS_EN.getMessage().formatted(location));
+                            messagingService.sendMessage(phoneNumber, FallbackMessage.LOCATION_UPDATE_SUCCESS_HI.getMessage().formatted(location));
+                        }
+                );
+    }
     private String buildGeminiPrompt(WeatherDto data, String location , Language language) {
         return """
 Generate a concise, farmer-friendly weather summary (3-4 lines) for %s.

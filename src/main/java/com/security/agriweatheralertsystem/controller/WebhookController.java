@@ -19,6 +19,7 @@ public class WebhookController {
     public void receiveMessage(
             @RequestParam("From") String phoneNumber,
             @RequestParam("Body") String messageBody) {
+//        System.out.println("Received message from: " + phoneNumber);
        weatherService.sendWeatherAlert(phoneNumber, messageBody);
     }
 }

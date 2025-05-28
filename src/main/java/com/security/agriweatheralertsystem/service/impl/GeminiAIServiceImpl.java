@@ -50,8 +50,7 @@ public class GeminiAIServiceImpl implements AIService {
             return  root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText();
         } catch (Exception e) {
             System.err.println("Error parsing Gemini API response: " + e.getMessage());
-            return  FallbackMessage.getMessage(Language.ENGLISH);
-
+           return null;
         }
     }
 }
