@@ -13,4 +13,12 @@ public enum Language {
         return language;
     }
 
+    public static Language fromString(String lang) {
+        return switch (lang.toLowerCase()) {
+            case "english" -> ENGLISH;
+            case "hindi" -> HINDI;
+            default -> ENGLISH; // fallback
+        };
+    }
+
     }

@@ -1,15 +1,15 @@
 package com.security.agriweatheralertsystem.converter;
 
 import com.security.agriweatheralertsystem.entity.User;
-
-import java.util.Optional;
+import com.security.agriweatheralertsystem.enums.Language;
 
 public class Converter {
-     public static Optional<User> toUserEntity(String phone, String location) {
-           User user = new User();
-           user.setPhone(phone);
-           user.setLocation(location);
-return Optional.of(user);
-     }
+    public static User toUserEntity(String phone, String location, Language language) {
+        User user = new User();
+        user.setPhone(phone);
+        user.setLocation(location);
+        user.setLanguage(language);
+        return user;
+    }
 
 }

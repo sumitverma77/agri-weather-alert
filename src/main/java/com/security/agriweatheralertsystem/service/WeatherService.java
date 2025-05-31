@@ -1,149 +1,125 @@
 package com.security.agriweatheralertsystem.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.security.agriweatheralertsystem.constant.Constants;
 import com.security.agriweatheralertsystem.converter.Converter;
+import com.security.agriweatheralertsystem.dto.ParsedMessage;
 import com.security.agriweatheralertsystem.dto.WeatherDto;
+import com.security.agriweatheralertsystem.entity.User;
 import com.security.agriweatheralertsystem.enums.FallbackMessage;
+import com.security.agriweatheralertsystem.enums.IntentType;
 import com.security.agriweatheralertsystem.enums.Language;
+import com.security.agriweatheralertsystem.facade.WeatherApiFacade;
 import com.security.agriweatheralertsystem.repository.UserRepo;
-import com.security.agriweatheralertsystem.utils.LocationParser;
+import com.security.agriweatheralertsystem.utils.JsonUtil;
+import com.security.agriweatheralertsystem.utils.PromptBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 import java.util.Optional;
 
+@Slf4j
 @Service
 public class WeatherService {
-    @Value("${weatherapi.key}")
-    private String WEATHERAPI_KEY;
-
-    @Value("${gemini.api.key}")
-    private String GEMINI_API_KEY;
-
     @Autowired
-    private AIService geminiService;
-
-    @Autowired
-    private LocationParser locationParser;
+    private AIService aiService;
     @Autowired
     MessagingService messagingService;
     @Autowired
     UserRepo userRepo;
+    @Autowired
+    @Qualifier("restTemplate")
+    RestTemplate restTemplate;
 
-    private final RestTemplate restTemplate = new RestTemplate();
-    private final ObjectMapper mapper = new ObjectMapper();
+    @Autowired
+    WeatherApiFacade weatherApiFacade;
+    @Autowired
+    ObjectMapper mapper;
+
+    public Optional<String> handleWeatherRequest(String phoneNumber, String messageBody) {
+        ParsedMessage parsedMessage = parseMessage(messageBody);
+
+        String intent = parsedMessage.getIntent();
+        String location = parsedMessage.getLocation();
+        String language = parsedMessage.getLanguage();
+
+        log.info("{}: {}, {}: {}, {}: {}", Constants.INTENT, intent, Constants.LANGUAGE, language, Constants.LOCATION, location);
+
+        if (intent.equals(IntentType.UPDATE_LOCATION.getValue()) && !location.isEmpty()) {
+            updateUserPreferences(phoneNumber, location, Language.fromString(language));
+            return Optional.of(FallbackMessage.LOCATION_UPDATE_SUCCESS
+                    .getMessage(Language.fromString(language)).formatted(location));
+
+        } else if (intent.equals(IntentType.GET_WEATHER.getValue()) && !location.isEmpty()) {
+            WeatherDto weatherData = weatherApiFacade.getWeatherData(location);
+            return summarize(weatherData, location, Language.fromString(language));
+
+        } else {
+            return Optional.of(FallbackMessage.UNKNOWN_REQUEST
+                    .getMessage(Language.fromString(language)));
+        }
+    }
 
     public void sendWeatherAlert(String phoneNumber, String messageBody) {
-        System.out.println("Received message from: " + phoneNumber);
-        System.out.println("Message body: " + messageBody);
-
-        WeatherDto weatherData = getWeatherData(messageBody);
-
-      updateLocation(phoneNumber, weatherData.getLocationName());
-
-        Optional<String> hindiSummaryOpt = summarize(weatherData, messageBody, Language.HINDI);
-        Optional<String> englishSummaryOpt = summarize(weatherData, messageBody, Language.ENGLISH);
-
-        if (hindiSummaryOpt.isPresent() && englishSummaryOpt.isPresent()){
-            messagingService.sendMessage(phoneNumber, englishSummaryOpt.get());
-            messagingService.sendMessage(phoneNumber, hindiSummaryOpt.get());
-        } else {
-            messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_EN.getMessage());
-            messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_HI.getMessage());
-        }
-
-
+        Optional<String> message = handleWeatherRequest(phoneNumber, messageBody);
+        message.ifPresent(msg -> messagingService.sendMessage(phoneNumber, msg));
     }
-    public WeatherDto getWeatherData(String messageBody) {
-        Optional<Map<String, String>> locationMapOpt = locationParser.parseLocation(messageBody);
 
-        String city = locationMapOpt.map(map -> Optional.ofNullable(map.get("parsedLocation"))).orElse(Optional.empty()).orElse(null);
-        String originalLocation = locationMapOpt.map(map -> Optional.ofNullable(map.get("originalLocation"))).orElse(Optional.empty()).orElse(null);
+    public Optional<String> processVoiceWeatherRequest(String phoneNumber, String messageBody) {
+        return handleWeatherRequest(phoneNumber, messageBody); // Don't send via WhatsApp
+    }
 
 
-        System.out.println("Original Location: " + originalLocation);
-        System.out.println("Parsed Location: " + city);
+    private Optional<String> summarize(WeatherDto weatherData, String location, Language language) {
+        String prompt = PromptBuilder.WeatherSummaryPrompt(weatherData, location, language);
+        return aiService.getResponse(prompt);
+    }
 
-        String weatherApiUrl = String.format(
-                "https://api.weatherapi.com/v1/forecast.json?key=%s&q=%s&days=2&aqi=no&alerts=no",
-                WEATHERAPI_KEY, city);
+    private void updateUserPreferences(String phoneNumber, String location, Language language) {
+        String cleanPhone = phoneNumber.startsWith("whatsapp:") ? phoneNumber.substring("whatsapp:".length())
+                : phoneNumber;
+        User user = userRepo.findByPhone(cleanPhone).orElseGet(() -> Converter.toUserEntity(cleanPhone, location, language));
+        user.setLocation(location);
+        user.setLanguage(language);
+        userRepo.save(user);
+    }
 
+    public ParsedMessage parseMessage(String messageBody) {
+        String prompt = PromptBuilder.IntentAndLocationPrompt(messageBody);
+        Map<String, String> details = extractDetailsWithAI(prompt);
+
+        String intent = details.get(Constants.INTENT);
+        String location = details.get(Constants.LOCATION);
+        String language = details.get(Constants.LANGUAGE);
+
+        return new ParsedMessage(intent, location, language);
+    }
+
+    public Map<String, String> extractDetailsWithAI(String prompt) {
+        return aiService.getResponse(prompt)
+                .map(JsonUtil::cleanJson)
+                .map(this::parseJsonToMap)
+                .orElseGet(() -> Map.of(Constants.INTENT, Constants.NONE, Constants.LOCATION, Constants.EMPTY, Constants.LANGUAGE, Constants.NONE));
+    }
+
+    private Map<String, String> parseJsonToMap(String json) {
         try {
-            String response = restTemplate.getForObject(weatherApiUrl, String.class);
-            JsonNode root = mapper.readTree(response);
-
-            JsonNode forecastDay = root.path("forecast").path("forecastday");
-
-            // Today
-            JsonNode today = forecastDay.get(0);
-            String todayDate = today.path("date").asText();
-            String todayCondition = today.path("day").path("condition").path("text").asText();
-            double todayAvgTemp = today.path("day").path("avgtemp_c").asDouble();
-            double todayChanceOfRain = today.path("day").path("daily_chance_of_rain").asDouble();
-            double todayTotalPrecip = today.path("day").path("totalprecip_mm").asDouble();
-
-            // Tomorrow
-            JsonNode tomorrow = forecastDay.get(1);
-            String tomorrowDate = tomorrow.path("date").asText();
-            String tomorrowCondition = tomorrow.path("day").path("condition").path("text").asText();
-            double tomorrowAvgTemp = tomorrow.path("day").path("avgtemp_c").asDouble();
-            double tomorrowChanceOfRain = tomorrow.path("day").path("daily_chance_of_rain").asDouble();
-            double tomorrowTotalPrecip = tomorrow.path("day").path("totalprecip_mm").asDouble();
-
-            String locationName = root.path("location").path("name").asText();
-
-            return new WeatherDto(locationName, todayDate, todayCondition, todayAvgTemp, todayChanceOfRain, todayTotalPrecip,
-                    tomorrowDate, tomorrowCondition, tomorrowAvgTemp, tomorrowChanceOfRain, tomorrowTotalPrecip);
-
+            Map<String, String> parsed = mapper.readValue(json, new TypeReference<>() {
+            });
+            return Map.of(
+                    Constants.INTENT, parsed.getOrDefault(Constants.INTENT, Constants.NONE),
+                    Constants.LOCATION, parsed.getOrDefault(Constants.LOCATION, Constants.EMPTY),
+                    Constants.LANGUAGE, parsed.getOrDefault(Constants.LANGUAGE, Constants.NONE)
+            );
         } catch (Exception e) {
-            System.err.println("Error parsing weather API response: " + e.getMessage());
-            return null;
+            log.error("Failed to parse cleaned JSON: {}", e.getMessage());
+            return Map.of(Constants.INTENT, Constants.NONE, Constants.LOCATION, Constants.EMPTY, Constants.LANGUAGE, Constants.NONE);
         }
     }
 
-
-    public Optional<String> summarize(WeatherDto weatherData, String location, Language language) {
-        String prompt = buildGeminiPrompt(weatherData, location , language);
-        return geminiService.getGeminiResponse(prompt);
-    }
-    private void updateLocation(String phoneNumber, String location) {
-
-        userRepo.findByPhone(phoneNumber)
-                .ifPresentOrElse(
-                        user -> {
-                            user.setLocation(location);
-                            userRepo.save(user);
-                        },
-                        () -> {
-                            Converter.toUserEntity(phoneNumber, location)
-                                    .ifPresent(userRepo::save);
-                            messagingService.sendMessage(phoneNumber, FallbackMessage.LOCATION_UPDATE_SUCCESS_EN.getMessage().formatted(location));
-                            messagingService.sendMessage(phoneNumber, FallbackMessage.LOCATION_UPDATE_SUCCESS_HI.getMessage().formatted(location));
-                        }
-                );
-    }
-    private String buildGeminiPrompt(WeatherDto data, String location , Language language) {
-        return """
-Generate a concise, farmer-friendly weather summary (3-4 lines) for %s.
-Include:
-- Today's (%s) forecast: %s, Avg Temp: %s°C, Rain Chance: %s%%, Rainfall: %smm
-- Tomorrow's (%s) forecast: %s, Avg Temp: %s°C, Rain Chance: %s%%, Rainfall: %smm
-
-Give the response in %s language
-
-Also, include one tip for our farmers relevant to the weather.
-Do NOT include phrases like "Here is your response" or any system messages.
-Directly write the report as if it's ready to be sent to a user via WhatsApp or SMS.
-""".formatted(
-                location,
-                data.getTodayDate(), data.getTodayCondition(), data.getTodayAvgTemp(), data.getTodayChanceOfRain(), data.getTodayTotalPrecip(),
-                data.getTomorrowDate(), data.getTomorrowCondition(), data.getTomorrowAvgTemp(), data.getTomorrowChanceOfRain(), data.getTomorrowTotalPrecip()
-                , language
-        );
-
-    }
 }
