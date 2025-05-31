@@ -1,14 +1,9 @@
 package com.security.agriweatheralertsystem.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import com.security.agriweatheralertsystem.enums.Language;
+import jakarta.persistence.*;
 import lombok.Data;
-import lombok.Setter;
 import org.hibernate.annotations.GenericGenerator;
-
-import java.util.UUID;
 @Data
 @Entity
 public class User {
@@ -22,4 +17,6 @@ public class User {
     String id;
     String phone;
     String location;
+    @Enumerated(EnumType.STRING)
+    private Language language;
 }

@@ -1,5 +1,6 @@
 package com.security.agriweatheralertsystem.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.security.agriweatheralertsystem.converter.Converter;
@@ -7,7 +8,7 @@ import com.security.agriweatheralertsystem.dto.WeatherDto;
 import com.security.agriweatheralertsystem.enums.FallbackMessage;
 import com.security.agriweatheralertsystem.enums.Language;
 import com.security.agriweatheralertsystem.repository.UserRepo;
-import com.security.agriweatheralertsystem.utils.LocationParser;
+import com.security.agriweatheralertsystem.utils.PromptBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -25,14 +26,13 @@ public class WeatherService {
     private String GEMINI_API_KEY;
 
     @Autowired
-    private AIService geminiService;
+    private AIService aiService;
 
-    @Autowired
-    private LocationParser locationParser;
     @Autowired
     MessagingService messagingService;
     @Autowired
     UserRepo userRepo;
+
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -41,32 +41,40 @@ public class WeatherService {
         System.out.println("Received message from: " + phoneNumber);
         System.out.println("Message body: " + messageBody);
 
-        WeatherDto weatherData = getWeatherData(messageBody);
 
-      updateLocation(phoneNumber, weatherData.getLocationName());
+        String prompt = PromptBuilder.IntentAndLocationPrompt(messageBody);
+        Map<String, String> intentAndLocation = extractIntentAndLocation(prompt);
+        String intent = intentAndLocation.get("intent");
+        String location = intentAndLocation.get("location");
+        String language = intentAndLocation.get("language");
+        System.out.println("Intent: " + intent + "Location: " + location + "Language: " + language);
 
-        Optional<String> hindiSummaryOpt = summarize(weatherData, messageBody, Language.HINDI);
-        Optional<String> englishSummaryOpt = summarize(weatherData, messageBody, Language.ENGLISH);
+        if (intent.equals("update_location") && !location.isEmpty()) {
+            updateUserPreferences(phoneNumber, location , Language.fromString(language));
 
-        if (hindiSummaryOpt.isPresent() && englishSummaryOpt.isPresent()){
-            messagingService.sendMessage(phoneNumber, englishSummaryOpt.get());
-            messagingService.sendMessage(phoneNumber, hindiSummaryOpt.get());
-        } else {
-            messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_EN.getMessage());
-            messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED_HI.getMessage());
+            messagingService.sendMessage(phoneNumber, FallbackMessage.LOCATION_UPDATE_SUCCESS.getMessage(Language.fromString(language)).formatted(location));
+        } else if (intent.equals("get_weather") && !location.isEmpty()) {
+            WeatherDto   weatherData = getWeatherData(location);
+            Optional<String> summaryOpt = summarize(weatherData, location, Language.fromString(language));
+
+            if (summaryOpt.isPresent()) {
+                messagingService.sendMessage(phoneNumber, summaryOpt.get());
+            } else {
+                messagingService.sendMessage(phoneNumber, FallbackMessage.WEATHER_FETCH_FAILED.getMessage(Language.fromString(language)).formatted(location));
+            }
+        }
+        else if(intent.equals("none") )
+        {
+            messagingService.sendMessage(phoneNumber, FallbackMessage.UNKNOWN_REQUEST.getMessage(Language.fromString(language)));
+        }
+        else {
+
+            messagingService.sendMessage(phoneNumber, FallbackMessage.UNKNOWN_REQUEST.getMessage(Language.fromString(language)));
         }
 
-
     }
-    public WeatherDto getWeatherData(String messageBody) {
-        Optional<Map<String, String>> locationMapOpt = locationParser.parseLocation(messageBody);
 
-        String city = locationMapOpt.map(map -> Optional.ofNullable(map.get("parsedLocation"))).orElse(Optional.empty()).orElse(null);
-        String originalLocation = locationMapOpt.map(map -> Optional.ofNullable(map.get("originalLocation"))).orElse(Optional.empty()).orElse(null);
-
-
-        System.out.println("Original Location: " + originalLocation);
-        System.out.println("Parsed Location: " + city);
+    public WeatherDto getWeatherData(String city) {
 
         String weatherApiUrl = String.format(
                 "https://api.weatherapi.com/v1/forecast.json?key=%s&q=%s&days=2&aqi=no&alerts=no",
@@ -107,43 +115,72 @@ public class WeatherService {
 
 
     public Optional<String> summarize(WeatherDto weatherData, String location, Language language) {
-        String prompt = buildGeminiPrompt(weatherData, location , language);
-        return geminiService.getGeminiResponse(prompt);
+        String prompt = PromptBuilder.WeatherSummaryPrompt(weatherData, location, language);
+        return aiService.getResponse(prompt);
     }
-    private void updateLocation(String phoneNumber, String location) {
+    private void updateUserPreferences (String phoneNumber, String location, Language language) {
 
         userRepo.findByPhone(phoneNumber)
                 .ifPresentOrElse(
                         user -> {
                             user.setLocation(location);
+                            user.setLanguage(language);
                             userRepo.save(user);
                         },
                         () -> {
-                            Converter.toUserEntity(phoneNumber, location)
+                            Converter.toUserEntity(phoneNumber, location, language)
                                     .ifPresent(userRepo::save);
-                            messagingService.sendMessage(phoneNumber, FallbackMessage.LOCATION_UPDATE_SUCCESS_EN.getMessage().formatted(location));
-                            messagingService.sendMessage(phoneNumber, FallbackMessage.LOCATION_UPDATE_SUCCESS_HI.getMessage().formatted(location));
                         }
                 );
     }
-    private String buildGeminiPrompt(WeatherDto data, String location , Language language) {
-        return """
-Generate a concise, farmer-friendly weather summary (3-4 lines) for %s.
-Include:
-- Today's (%s) forecast: %s, Avg Temp: %s°C, Rain Chance: %s%%, Rainfall: %smm
-- Tomorrow's (%s) forecast: %s, Avg Temp: %s°C, Rain Chance: %s%%, Rainfall: %smm
 
-Give the response in %s language
 
-Also, include one tip for our farmers relevant to the weather.
-Do NOT include phrases like "Here is your response" or any system messages.
-Directly write the report as if it's ready to be sent to a user via WhatsApp or SMS.
-""".formatted(
-                location,
-                data.getTodayDate(), data.getTodayCondition(), data.getTodayAvgTemp(), data.getTodayChanceOfRain(), data.getTodayTotalPrecip(),
-                data.getTomorrowDate(), data.getTomorrowCondition(), data.getTomorrowAvgTemp(), data.getTomorrowChanceOfRain(), data.getTomorrowTotalPrecip()
-                , language
+    private Map<String, String> extractIntentAndLocation(String prompt) {
+        try {
+            Optional<String> response = aiService.getResponse(prompt);
+
+            if (response.isPresent()) {
+                String json = response.get();
+
+                // Clean up json string: remove backticks and leading/trailing labels like "Optional[```json ... ```]"
+                json = json.trim();
+
+                // Remove Optional[...] wrapper if present
+                if (json.startsWith("Optional[")) {
+                    json = json.substring("Optional[".length(), json.length() - 1).trim();
+                }
+
+                // Remove backticks ``` and optional "json" label (case-insensitive)
+                json = json.replaceAll("(?i)^```json", "");  // remove leading ```json (ignore case)
+                json = json.replaceAll("^```", "");          // remove leading ```
+                json = json.replaceAll("```$", "");          // remove trailing ```
+                json = json.trim();
+
+                ObjectMapper mapper = new ObjectMapper();
+
+                // Parse the cleaned JSON string to Map
+                Map<String, String> parsed = mapper.readValue(json, new TypeReference<>() {
+                });
+
+                String intent = parsed.getOrDefault("intent", "none");
+                String location = parsed.getOrDefault("location", "");
+                String language = parsed.getOrDefault("language", "unknown");
+
+                return Map.of(
+                        "intent", intent,
+                        "location", location,
+                        "language", language
+                );
+            }
+        } catch (Exception e) {
+            System.err.println("Error extracting intent/location/language: " + e.getMessage());
+        }
+
+        return Map.of(
+                "intent", "none",
+                "location", "",
+                "language", "unknown"
         );
-
     }
+
 }

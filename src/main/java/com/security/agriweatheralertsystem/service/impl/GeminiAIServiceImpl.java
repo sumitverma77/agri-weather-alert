@@ -23,7 +23,7 @@ public class GeminiAIServiceImpl implements AIService {
     private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public Optional<String> getGeminiResponse( String prompt)
+    public Optional<String> getResponse(String prompt)
     {
         String escapedPrompt = prompt.replace("\"", "\\\"");
 
