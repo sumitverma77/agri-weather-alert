@@ -1,4 +1,9 @@
 # AgriWeather Alert System 🌾☁️
+<p align="center">
+  <img src="docs/images/farmer-planting-under-the-rain-mhmnqfzyhnjwmj5t.gif" width="100%" />
+</p>
+
+
 
 ## 📌 Project Description
 
@@ -16,9 +21,11 @@ AgriWeather Alert System automates the delivery of weather updates via SMS and W
 
 2. Supports non-tech-savvy farmers
 
-3. Bilingual support (Hindi & English)
+3. Returns weather updates according to the users preferred language.
 
-4. Zero interaction required — just read the message
+4. Supports natural language processing 
+
+5. Zero interaction required — just read the message
 
 Reduces dependency on unreliable information sources
 ---
@@ -98,7 +105,7 @@ https://your-ngrok-url.ngrok.io/api/webhook
 
 4. Join the sandbox by sending the join code (e.g., `join brave-owl`) to the provided WhatsApp number.
 
-![Twilio Sandbox Config](screenshots/sandbox-config.png)
+![Twilio Sandbox Config](docs/images/sandbox-config.png)
 
 ---
 
@@ -121,13 +128,13 @@ public void sendWeatherAlerts() {
 
 ### 1. Update Location (via WhatsApp)
 
-![Update Location](screenshots/update-location.png)
+![Update Location](docs/images/language-friendly-response.png)
 
 ### 2. Automatically Scheduled Alerts
 
 Alerts sent at **5:00 AM** daily.
 
-![Scheduled Alert](screenshots/scheduled-alerts.png)
+![Scheduled Alert](docs/images/scheduled-alerts.png)
 
 ---
 
