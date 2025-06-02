@@ -72,17 +72,13 @@ public class WeatherService {
         message.ifPresent(msg -> messagingService.sendMessage(phoneNumber, msg));
     }
 
-    public Optional<String> processVoiceWeatherRequest(String phoneNumber, String messageBody) {
-        return handleWeatherRequest(phoneNumber, messageBody); // Don't send via WhatsApp
-    }
 
-
-    private Optional<String> summarize(WeatherDto weatherData, String location, Language language) {
+    public Optional<String> summarize(WeatherDto weatherData, String location, Language language) {
         String prompt = PromptBuilder.WeatherSummaryPrompt(weatherData, location, language);
         return aiService.getResponse(prompt);
     }
 
-    private void updateUserPreferences(String phoneNumber, String location, Language language) {
+    public void updateUserPreferences(String phoneNumber, String location, Language language) {
         String cleanPhone = phoneNumber.startsWith("whatsapp:") ? phoneNumber.substring("whatsapp:".length())
                 : phoneNumber;
         User user = userRepo.findByPhone(cleanPhone).orElseGet(() -> Converter.toUserEntity(cleanPhone, location, language));
