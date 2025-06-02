@@ -37,7 +37,7 @@ public class GeminiApiFacade {
             HttpEntity<String> entity = new HttpEntity<>(requestBody, headers);
             String response = restTemplate.postForObject(url, entity, String.class);
 
-            return Optional.ofNullable(response);
+            return Optional.of(response);
         } catch (Exception e) {
             System.err.println("Error calling Gemini API: " + e.getMessage());
             return Optional.empty();

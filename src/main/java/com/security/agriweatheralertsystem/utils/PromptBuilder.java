@@ -56,6 +56,8 @@ public class PromptBuilder {
     }
 
     public static String WeatherSummaryPrompt(WeatherDto data, String location, Language language) {
+        WeatherDto.ForecastDay today = data.getForecast().getForecastday().get(0);
+        WeatherDto.ForecastDay tomorrow = data.getForecast().getForecastday().get(1);
         return """
                 Generate a concise, farmer-friendly weather summary (3-4 lines) for %s.
                 Include:
@@ -69,9 +71,19 @@ public class PromptBuilder {
                 Directly write the report as if it's ready to be sent to a user via WhatsApp or SMS.
                 """.formatted(
                 location,
-                data.getTodayDate(), data.getTodayCondition(), data.getTodayAvgTemp(), data.getTodayChanceOfRain(), data.getTodayTotalPrecip(),
-                data.getTomorrowDate(), data.getTomorrowCondition(), data.getTomorrowAvgTemp(), data.getTomorrowChanceOfRain(), data.getTomorrowTotalPrecip()
-                , language
+                today.getDate(),
+                today.getDay().getCondition().getText(),
+                today.getDay().getAvgtempC(),
+                today.getDay().getDailyChanceOfRain(),
+                today.getDay().getTotalprecipMm(),
+
+                tomorrow.getDate(),
+                tomorrow.getDay().getCondition().getText(),
+                tomorrow.getDay().getAvgtempC(),
+                tomorrow.getDay().getDailyChanceOfRain(),
+                tomorrow.getDay().getTotalprecipMm(),
+
+                language
         );
 
     }

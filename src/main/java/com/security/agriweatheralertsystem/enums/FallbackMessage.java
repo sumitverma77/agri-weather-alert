@@ -12,8 +12,11 @@ public enum FallbackMessage {
             "आंतरिक त्रुटि के कारण आपका अनुरोध संसाधित नहीं किया जा सका। कृपया बाद में पुनः प्रयास करें।"),
     UNKNOWN_REQUEST(
             "Couldn't understand your request. Please try again.",
-            "आपका अनुरोध समझ नहीं आया। कृपया पुनः प्रयास करें।");
-
+            "आपका अनुरोध समझ नहीं आया। कृपया पुनः प्रयास करें।"),
+    WEATHER_INFO_UNAVAILABLE(
+            "Weather information is currently unavailable. Please try again later.",
+            "मौसम की जानकारी वर्तमान में उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें."
+    );
     private final String englishMessage;
     private final String hindiMessage;
 

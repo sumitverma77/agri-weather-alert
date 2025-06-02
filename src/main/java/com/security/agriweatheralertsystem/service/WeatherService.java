@@ -56,8 +56,10 @@ public class WeatherService {
                     .getMessage(Language.fromString(language)).formatted(location));
 
         } else if (intent.equals(IntentType.GET_WEATHER.getValue()) && !location.isEmpty()) {
-            WeatherDto weatherData = weatherApiFacade.getWeatherData(location);
-            return summarize(weatherData, location, Language.fromString(language));
+            Optional<WeatherDto> weatherData = weatherApiFacade.getWeatherData(location);
+            return weatherData
+                    .map(dto -> summarize(dto, location, Language.fromString(language)))
+                    .orElse(Optional.ofNullable(FallbackMessage.WEATHER_INFO_UNAVAILABLE.getMessage(Language.fromString(language))));
 
         } else {
             return Optional.of(FallbackMessage.UNKNOWN_REQUEST
