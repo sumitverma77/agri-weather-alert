@@ -2,6 +2,7 @@ package com.security.agriweatheralertsystem.service;
 
 import com.security.agriweatheralertsystem.dto.WeatherDto;
 import com.security.agriweatheralertsystem.enums.Language;
+import com.security.agriweatheralertsystem.enums.VoicePrompt;
 import com.security.agriweatheralertsystem.facade.WeatherApiFacade;
 import com.twilio.http.HttpMethod;
 import com.twilio.twiml.VoiceResponse;
@@ -28,15 +29,17 @@ public class VoiceService {
     @Autowired
     private WeatherService weatherService;
 
+    private static final String LANGUAGE_SELECTION_ENDPOINT = "/api/language-selection";
+    private static final String DIGIT_ONE = "1";
+
 
     public void promptLanguageSelection(HttpServletResponse response) throws IOException {
-        String prompt = "Hindi ke liye ek dabayen. For English press 2.";
-
+        String prompt = VoicePrompt.LANGUAGE_SELECTION.getPrompt(Language.ENGLISH);
         Gather gather = new Gather.Builder()
                 .inputs(Collections.singletonList(Gather.Input.DTMF))
                 .numDigits(1)
                 .timeout(5)
-                .action("/api/language-selection")
+                .action(LANGUAGE_SELECTION_ENDPOINT)
                 .method(HttpMethod.POST)
                 .say(new Say.Builder(prompt)
                         .voice(Say.Voice.POLLY_ADITI)
@@ -46,7 +49,7 @@ public class VoiceService {
 
         VoiceResponse twiml = new VoiceResponse.Builder()
                 .gather(gather)
-                .say(new Say.Builder("Koi input nahi mila. Dhanyawaad!")
+                .say(new Say.Builder(VoicePrompt.LANGUAGE_SELECTION.getPrompt(Language.ENGLISH))
                         .voice(Say.Voice.POLLY_ADITI)
                         .language(Say.Language.HI_IN)
                         .build())
@@ -60,17 +63,17 @@ public class VoiceService {
         Gather.Language gatherLanguage;
         String prompt;
 
-        if ("1".equals(digits)) {
+        if (DIGIT_ONE.equals(digits)) {
             sayLanguage = Say.Language.HI_IN;
             gatherLanguage = Gather.Language.EN_IN;
-            prompt = "Apne sheher ka naam bolein jiska mausam aap jaan na chahte hain.";
+            prompt = VoicePrompt.CITY_NAME_REQUEST.getPrompt(Language.HINDI);
         } else if ("2".equals(digits)) {
             sayLanguage = Say.Language.EN_IN;
             gatherLanguage = Gather.Language.EN_IN;
-            prompt = "Please say the name of your city to get the weather update.";
+            prompt = VoicePrompt.CITY_NAME_REQUEST.getPrompt(Language.ENGLISH);
         } else {
             VoiceResponse twiml = new VoiceResponse.Builder()
-                    .say(new Say.Builder("Galat vikalp. Call samapt ho raha hai. Dhanyawaad!")
+                    .say(new Say.Builder(VoicePrompt.INVALID_INPUT.getPrompt(Language.ENGLISH))
                             .voice(Say.Voice.POLLY_ADITI)
                             .language(Say.Language.HI_IN)
                             .build())
@@ -93,7 +96,7 @@ public class VoiceService {
 
         VoiceResponse twiml = new VoiceResponse.Builder()
                 .gather(gather)
-                .say(new Say.Builder("Koi input nahi mila. Dhanyawaad!")
+                .say(new Say.Builder(VoicePrompt.CITY_NAME_REQUEST.getPrompt(Language.ENGLISH))
                         .voice(Say.Voice.POLLY_ADITI)
                         .language(sayLanguage)
                         .build())
@@ -104,7 +107,7 @@ public class VoiceService {
 
 
     public void processWeatherQuery(String location, String lang, String phone, HttpServletResponse response) throws IOException {
-        Say.Language language = "1".equals(lang) ? Say.Language.HI_IN : Say.Language.EN_IN;
+        Say.Language language = DIGIT_ONE.equals(lang) ? Say.Language.HI_IN : Say.Language.EN_IN;
         log.info("Processing weather query for location: {}, language: {}, phone: {}", location, lang, phone);
 
         Optional<WeatherDto> weatherData;
@@ -115,7 +118,7 @@ public class VoiceService {
             log.error("Exception while fetching weather data for location: {}", location, e);
 
             VoiceResponse fallback = new VoiceResponse.Builder()
-                    .say(new Say.Builder("Weather service is currently facing issues. Please try again later.")
+                    .say(new Say.Builder(VoicePrompt.SERVICE_UNAVAILABLE.getPrompt(Language.ENGLISH))
                             .voice(Say.Voice.POLLY_ADITI)
                             .language(language)
                             .build())
@@ -124,11 +127,11 @@ public class VoiceService {
             return;
         }
 
-        Language summarylanguage = "1".equals(lang) ? Language.HINDI : Language.ENGLISH;
+        Language summarylanguage = DIGIT_ONE.equals(lang) ? Language.HINDI : Language.ENGLISH;
 
         // Now you're outside the try-catch, and weatherData is definitely initialized
         String summary = weatherService.summarize(weatherData.orElse(null), location, summarylanguage)
-                .orElse("Weather information is currently unavailable. Please try again later.");
+                .orElse(VoicePrompt.SERVICE_UNAVAILABLE.getPrompt(Language.ENGLISH));
         log.info("Weather summary generated: {}", summary);
 
         // Main TwiML response
@@ -138,7 +141,11 @@ public class VoiceService {
                         .language(language)
                         .build());
 
-        String promptUpdate = "If you want to update your location for daily alerts, press 1. To end the call, press any other key.";
+        String promptUpdate = DIGIT_ONE.equals(lang) ?
+                VoicePrompt.CITY_UPDATE_REQUEST.getPrompt(Language.HINDI) :
+                VoicePrompt.CITY_UPDATE_REQUEST.getPrompt(Language.ENGLISH);
+        String promptGoodbye = DIGIT_ONE.equals(lang) ? VoicePrompt.GOOD_BYE.getPrompt(Language.HINDI) :
+                VoicePrompt.GOOD_BYE.getPrompt(Language.ENGLISH);
         Gather gather = new Gather.Builder()
                 .inputs(Collections.singletonList(Gather.Input.DTMF))
                 .numDigits(1)
@@ -156,7 +163,7 @@ public class VoiceService {
 
         twimlBuilder.gather(gather);
 
-        twimlBuilder.say(new Say.Builder("Thank you for calling. Goodbye!")
+        twimlBuilder.say(new Say.Builder(promptGoodbye)
                 .voice(Say.Voice.POLLY_ADITI)
                 .language(language)
                 .build());
@@ -164,36 +171,25 @@ public class VoiceService {
         writeResponse(response, twimlBuilder.build());
     }
 
-
     public void updateUserPreferenceFlow(String digits, String city, String lang, String phone, HttpServletResponse response) throws IOException {
-        Say.Language language = "1".equals(lang) ? Say.Language.HI_IN : Say.Language.EN_IN;
+        Say.Language language = DIGIT_ONE.equals(lang) ? Say.Language.HI_IN : Say.Language.EN_IN;
+        String reply = DIGIT_ONE.equals(lang) ?
+                VoicePrompt.CITY_UPDATE_SUCCESS.getPrompt(Language.HINDI) :
+                VoicePrompt.CITY_UPDATE_SUCCESS.getPrompt(Language.ENGLISH);
 
-        if ("1".equals(digits)) {
-            // Call your existing service to update preferences
-
+        if (DIGIT_ONE.equals(digits)) {
             weatherService.updateUserPreferences(phone, city, Language.fromString(lang));
-            String reply = (language == Say.Language.HI_IN) ? "Aapka location aur language update kar diya gaya hai. Dhanyawaad!" : "Your location and language have been updated. Thank you!";
-
-            VoiceResponse twiml = new VoiceResponse.Builder()
-                    .say(new Say.Builder(reply)
-                            .voice(Say.Voice.POLLY_ADITI)
-                            .language(language)
-                            .build())
-                    .hangup(new Hangup.Builder().build())
-                    .build();
-
-            writeResponse(response, twiml);
-        } else {
-            VoiceResponse twiml = new VoiceResponse.Builder()
-                    .say(new Say.Builder(language == Say.Language.HI_IN ? "Dhanyawaad! Call samapt ho raha hai." : "Thank you! Ending the call.")
-                            .voice(Say.Voice.POLLY_ADITI)
-                            .language(language)
-                            .build())
-                    .hangup(new Hangup.Builder().build())
-                    .build();
-
-            writeResponse(response, twiml);
         }
+        VoiceResponse twiml = new VoiceResponse.Builder()
+                .say(new Say.Builder(reply)
+                        .voice(Say.Voice.POLLY_ADITI)
+                        .language(language)
+                        .build())
+                .hangup(new Hangup.Builder().build())
+                .build();
+
+        writeResponse(response, twiml);
+
     }
 
     private void writeResponse(HttpServletResponse response, VoiceResponse twiml) throws IOException {
