@@ -1,14 +1,14 @@
 ## Current Work Focus
 
-The current work focus is to update the `README.md` and memory bank files to reflect the changes in the system.
+The current work focus is to update the `README.md` and memory bank files to reflect the addition of the voice call feature in the system.
 
 ## Recent Changes
 
-*   Updated the `README.md` file to reflect that the system now takes the name of the location instead of the PIN code and that the system sends weather alerts automatically via a scheduler.
-*   Updated the `projectbrief.md` file to reflect that the system now takes the name of the location instead of the PIN code and that the system sends weather alerts automatically via a scheduler.
-*   Updated the `productContext.md` file to reflect that the system now takes the name of the location instead of the PIN code and that the system sends weather alerts automatically via a scheduler.
-*   Updated the `systemPatterns.md` file to reflect that the system now takes the name of the location instead of the PIN code and that the system sends weather alerts automatically via a scheduler.
-*   Updated the `techContext.md` file to reflect that the system now takes the name of the location instead of the PIN code and that the system sends weather alerts automatically via a scheduler.
+*   Updated the `README.md` file to include the voice call feature and instructions on how to set it up.
+*   Updated the `projectbrief.md` file to include the voice call feature.
+*   Updated the `productContext.md` file to include the voice call feature.
+*   Updated the `systemPatterns.md` file to include the voice call feature.
+*   Updated the `techContext.md` file to include the voice call feature.
 
 ## Next Steps
 
@@ -16,5 +16,5 @@ The current work focus is to update the `README.md` and memory bank files to ref
 
 ## Active Decisions and Considerations
 
-*   The system now takes the name of the location instead of the PIN code.
-*   The system sends weather alerts automatically via a scheduler, so farmers don't need to call.
+*   The system now supports voice calls for accessing weather information.
+*   The system gathers location in English to avoid text conversion issues.

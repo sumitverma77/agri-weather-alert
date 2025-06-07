@@ -24,10 +24,10 @@ public class TwilioMessagingServiceImpl implements MessagingService {
         Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
 
         Message twilioMessage = Message.creator(
-                new PhoneNumber(phoneNumber),
-                new PhoneNumber(TWILIO_PHONE_NUMBER),
-                message)
-            .create();
+                        new PhoneNumber(phoneNumber),
+                        new PhoneNumber(TWILIO_PHONE_NUMBER),
+                        message)
+                .create();
 
         System.out.println(twilioMessage.getSid());
     }

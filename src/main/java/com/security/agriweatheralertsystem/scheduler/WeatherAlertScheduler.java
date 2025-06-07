@@ -9,23 +9,24 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 
-    @Component
-    public class WeatherAlertScheduler {
-        @Autowired
-        private UserRepo userRepo;
-        @Autowired
-        private WeatherService weatherService;
-        // Run Everyday at 5 AM
-     @Scheduled(cron = "0 0 5 * * ?")
+@Component
+public class WeatherAlertScheduler {
+    @Autowired
+    private UserRepo userRepo;
+    @Autowired
+    private WeatherService weatherService;
 
-        //       run after 3 min
-//        @Scheduled(cron = "0 0/3 * * * ?")
-        public void sendWeatherAlerts() {
-            List<User> users = userRepo.findAll();
-            for (User user : users) {
-                String phone = "whatsapp:" + user.getPhone();
-                String location = user.getLocation();
-                weatherService.sendWeatherAlert(phone, location);
-            }
+    // Run Everyday at 5 AM
+    @Scheduled(cron = "0 0 5 * * ?")
+
+    // run after 3 min
+    // @Scheduled(cron = "0 0/3 * * * ?")
+    public void sendWeatherAlerts() {
+        List<User> users = userRepo.findAll();
+        for (User user : users) {
+            String phone = "whatsapp:" + user.getPhone();
+            String location = user.getLocation();
+            weatherService.sendWeatherAlert(phone, location);
         }
     }
+}

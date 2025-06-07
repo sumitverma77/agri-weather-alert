@@ -3,7 +3,7 @@
 **Technologies Used:**
 
 *   **Spring Boot:** Java-based framework for building the application.
-*   **Twilio:** For sending and receiving SMS/WhatsApp messages.
+*   **Twilio:** For sending and receiving SMS/WhatsApp messages and handling voice calls.
 *   **Google Cloud AI Gemini:** For summarizing weather data in Hindi and English.
 *   **Weather API:** For fetching weather data based on the location.
 *   **Maven:** For dependency management.
@@ -24,6 +24,7 @@
 *   API rate limits for Twilio, Gemini, and the weather API.
 *   The need to handle different weather API response formats.
 *   Ensuring the security of API keys and credentials.
+*   Handling voice call concurrency and potential latency.
 
 **Dependencies:**
 

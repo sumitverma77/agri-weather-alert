@@ -1,7 +1,5 @@
 package com.security.agriweatheralertsystem.enums;
 
-import org.hibernate.type.descriptor.sql.internal.Scale6IntervalSecondDdlType;
-
 public enum VoicePrompt {
     LANGUAGE_SELECTION(
             "हिंदी के लिए १ दबाएँ। For English Press 2",

@@ -4,6 +4,7 @@ import com.security.agriweatheralertsystem.enums.Language;
 import jakarta.persistence.*;
 import lombok.Data;
 import org.hibernate.annotations.GenericGenerator;
+
 @Data
 @Entity
 public class User {
