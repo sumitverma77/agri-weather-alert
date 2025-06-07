@@ -16,12 +16,12 @@ public enum VoicePrompt {
             "Please say the name of the city whose weather you want to know."
     ),
     INVALID_INPUT(
-            " Your input is invalid. The call is ending. Thank you! आपका इनपुट मान्य नहीं है। कॉल समाप्त की जा रही है। धन्यवाद!",
-            "Your input is invalid. The call is ending. Thank you! आपका इनपुट मान्य नहीं है। कॉल समाप्त की जा रही है।"
+            "आपका इनपुट मान्य नहीं है। कॉल समाप्त की जा रही है। धन्यवाद!",
+            "Your input is invalid. The call is ending. Thank you!"
     ),
     SERVICE_UNAVAILABLE(
-            "Weather service is currently unavailable. Please try again later. मौसम सेवा उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।",
-            "Weather service is currently unavailable. Please try again later.मौसम सेवा उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।"
+            " मौसम सेवा उपलब्ध नहीं है। कृपया बाद में पुनः प्रयास करें।",
+            "Weather service is currently unavailable. Please try again later."
     ),
     CITY_UPDATE_REQUEST(
             "यदि आप दैनिक अलर्ट के लिए अपना स्थान अपडेट करना चाहते हैं, तो 1 दबाएँ। कॉल समाप्त करने के लिए कोई भी अन्य कुंजी दबाएँ।",

@@ -40,10 +40,6 @@ public class VoiceController {
                                  @RequestParam("from") String phone,
                                  HttpServletResponse response) throws IOException {
         log.info("Received speech input: '{}', lang: {}, phone: {}", city, lang, phone);
-        if (city == null || city.trim().isEmpty() || city.contains("?")) {
-            log.warn("Speech recognition failed or returned unclear result: '{}'", city);
-            city = "Ayodhya"; // fallback or handle gracefully
-        }
 
         voiceService.processWeatherQuery(city, lang, phone, response);
     }

@@ -30,7 +30,11 @@ public class VoiceService {
     private WeatherService weatherService;
 
     private static final String LANGUAGE_SELECTION_ENDPOINT = "/api/language-selection";
+    private static final String CITY_UPDATE_ENDPOINT = "/api/update-preference?city=%s&lang=%s&from=%s";
+    public static final String VOICE_INPUT_URL_FORMAT = "/api/voice-input?lang=%s&from=%s";
     private static final String DIGIT_ONE = "1";
+    public static final String CONTENT_TYPE_XML = "application/xml";
+    public static final String CHARACTER_ENCODING_UTF8 = "UTF-8";
 
 
     public void promptLanguageSelection(HttpServletResponse response) throws IOException {
@@ -86,7 +90,7 @@ public class VoiceService {
                 .inputs(Collections.singletonList(Gather.Input.SPEECH))
                 .timeout(5)
                 .language(gatherLanguage)
-                .action("/api/voice-input?lang=" + digits + "&from=" + URLEncoder.encode(caller, StandardCharsets.UTF_8))
+                .action(String.format(VOICE_INPUT_URL_FORMAT, digits, URLEncoder.encode(caller, StandardCharsets.UTF_8)))
                 .method(HttpMethod.POST)
                 .say(new Say.Builder(prompt)
                         .voice(Say.Voice.POLLY_ADITI)
@@ -107,6 +111,18 @@ public class VoiceService {
 
 
     public void processWeatherQuery(String location, String lang, String phone, HttpServletResponse response) throws IOException {
+        Language summarylanguage = DIGIT_ONE.equals(lang) ? Language.HINDI : Language.ENGLISH;
+        location = location.trim();
+        if (location.isEmpty() || location.contains("?")) {
+            log.warn("Invalid location input: '{}'", location);
+            VoiceResponse twiml = new VoiceResponse.Builder()
+                    .say(new Say.Builder(VoicePrompt.INVALID_INPUT.getPrompt(summarylanguage))
+                            .voice(Say.Voice.POLLY_ADITI)
+                            .language(Say.Language.EN_IN)
+                            .build())
+                    .build();
+            writeResponse(response, twiml);
+        }
         Say.Language language = DIGIT_ONE.equals(lang) ? Say.Language.HI_IN : Say.Language.EN_IN;
         log.info("Processing weather query for location: {}, language: {}, phone: {}", location, lang, phone);
 
@@ -118,7 +134,7 @@ public class VoiceService {
             log.error("Exception while fetching weather data for location: {}", location, e);
 
             VoiceResponse fallback = new VoiceResponse.Builder()
-                    .say(new Say.Builder(VoicePrompt.SERVICE_UNAVAILABLE.getPrompt(Language.ENGLISH))
+                    .say(new Say.Builder(VoicePrompt.SERVICE_UNAVAILABLE.getPrompt(summarylanguage))
                             .voice(Say.Voice.POLLY_ADITI)
                             .language(language)
                             .build())
@@ -127,11 +143,10 @@ public class VoiceService {
             return;
         }
 
-        Language summarylanguage = DIGIT_ONE.equals(lang) ? Language.HINDI : Language.ENGLISH;
 
         // Now you're outside the try-catch, and weatherData is definitely initialized
         String summary = weatherService.summarize(weatherData.orElse(null), location, summarylanguage)
-                .orElse(VoicePrompt.SERVICE_UNAVAILABLE.getPrompt(Language.ENGLISH));
+                .orElse(VoicePrompt.SERVICE_UNAVAILABLE.getPrompt(summarylanguage));
         log.info("Weather summary generated: {}", summary);
 
         // Main TwiML response
@@ -150,7 +165,7 @@ public class VoiceService {
                 .inputs(Collections.singletonList(Gather.Input.DTMF))
                 .numDigits(1)
                 .timeout(5)
-                .action(String.format("/api/update-preference?city=%s&lang=%s&from=%s",
+                .action(String.format(CITY_UPDATE_ENDPOINT,
                         URLEncoder.encode(location, StandardCharsets.UTF_8),
                         lang,
                         URLEncoder.encode(phone, StandardCharsets.UTF_8)))
@@ -194,10 +209,10 @@ public class VoiceService {
 
     private void writeResponse(HttpServletResponse response, VoiceResponse twiml) throws IOException {
         try {
-            response.setContentType("application/xml");
-            response.setCharacterEncoding("UTF-8"); // ✅ Important to handle Hindi characters
+            response.setContentType(CONTENT_TYPE_XML);
+            response.setCharacterEncoding(CHARACTER_ENCODING_UTF8);
             String xml = twiml.toXml();
-            log.info("Generated TwiML:\n{}", xml); // ✅ Log the exact response
+            log.info("Generated TwiML:\n{}", xml);
             response.getWriter().write(xml);
         } catch (Exception e) {
             log.error("Error writing TwiML response: {}", e.getMessage(), e);

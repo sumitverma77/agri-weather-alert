@@ -44,7 +44,7 @@ public class WeatherApiFacade {
                     WeatherDto.class
             );
 
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            if (response.getStatusCode() == HttpStatus.OK) {
                 return Optional.of(response.getBody());
             } else {
                 log.warn("Weather API returned non-OK status: {}", response.getStatusCode());
